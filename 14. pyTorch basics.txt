@@ -1,0 +1,106 @@
+# pytorch_basics_to_intermediate.py
+# Purpose: Learn basic to intermediate PyTorch using sample datasets
+
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import Dataset, DataLoader
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Tensor Basics
+print("1. Tensor Basics")
+x = torch.tensor([1.0, 2.0, 3.0])
+y = torch.tensor([4.0, 5.0, 6.0])
+print("Addition:", x + y)
+print("Dot product:", torch.dot(x, y))
+print("Matrix multiplication:", torch.matmul(x.unsqueeze(0), y.unsqueeze(1)))
+
+# 2. Gradients & Autograd
+print("\n2. Autograd")
+a = torch.tensor([2.0], requires_grad=True)
+b = a**2 + 3*a + 1
+b.backward()
+print("Gradient of b with respect to a:", a.grad)
+
+# 3. Custom Dataset
+print("\n3. Custom Dataset")
+class SampleDataset(Dataset):
+    def __init__(self):
+        self.X = torch.linspace(0, 10, 100).reshape(-1, 1)
+        self.y = 3 * self.X + torch.randn_like(self.X)
+
+    def __len__(self):
+        return len(self.X)
+
+    def __getitem__(self, idx):
+        return self.X[idx], self.y[idx]
+
+dataset = SampleDataset()
+dataloader = DataLoader(dataset, batch_size=10, shuffle=True)
+
+# 4. Simple Linear Regression Model
+print("\n4. Linear Regression")
+class LinearModel(nn.Module):
+    def __init__(self):
+        super(LinearModel, self).__init__()
+        self.linear = nn.Linear(1, 1)
+
+    def forward(self, x):
+        return self.linear(x)
+
+model = LinearModel()
+criterion = nn.MSELoss()
+optimizer = optim.SGD(model.parameters(), lr=0.01)
+
+# Training loop
+epochs = 10
+for epoch in range(epochs):
+    for batch_X, batch_y in dataloader:
+        pred = model(batch_X)
+        loss = criterion(pred, batch_y)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+    print(f"Epoch {epoch+1}, Loss: {loss.item():.4f}")
+
+# 5. Save & Load Model
+torch.save(model.state_dict(), "linear_model.pth")
+model.load_state_dict(torch.load("linear_model.pth"))
+
+# 6. Neural Network for Classification
+print("\n5. Simple Classification NN")
+
+# Dummy classification dataset
+from sklearn.datasets import make_classification
+X, y = make_classification(n_samples=200, n_features=2, n_classes=2, n_redundant=0)
+X_tensor = torch.tensor(X, dtype=torch.float32)
+y_tensor = torch.tensor(y, dtype=torch.long)
+
+class ClassifierNN(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(2, 16),
+            nn.ReLU(),
+            nn.Linear(16, 2)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+model2 = ClassifierNN()
+loss_fn = nn.CrossEntropyLoss()
+optimizer = optim.Adam(model2.parameters(), lr=0.01)
+
+# Training classification model
+for epoch in range(20):
+    optimizer.zero_grad()
+    outputs = model2(X_tensor)
+    loss = loss_fn(outputs, y_tensor)
+    loss.backward()
+    optimizer.step()
+    if epoch % 5 == 0:
+        print(f"Epoch {epoch}, Loss: {loss.item():.4f}")
+
+print("✅ PyTorch examples completed.")

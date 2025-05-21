@@ -1,0 +1,321 @@
+# NumPy Learning Script: Basic to Intermediate
+
+import numpy as np
+
+print("--- NumPy Learning Script: Basic to Intermediate ---")
+print(f"NumPy Version: {np.__version__}\n")
+
+# ==============================================================================
+# == 👶 BASIC LEVEL ==
+# ==============================================================================
+print("====================== 👶 BASIC LEVEL ======================\n")
+
+# --- 1. Array Creation ---
+print("--- 1. Array Creation ---")
+# From Python lists
+list_1d = [1, 2, 3, 4, 5]
+basic_array_1d = np.array(list_1d)
+print(f"1D Array from list: {basic_array_1d}")
+
+list_2d = [[10, 20, 30], [40, 50, 60]]
+basic_array_2d = np.array(list_2d)
+print(f"2D Array from list of lists:\n{basic_array_2d}")
+
+# Using np.arange(start, stop, step)
+array_arange = np.arange(0, 10, 2)  # 0, 2, 4, 6, 8
+print(f"Array using np.arange(0, 10, 2): {array_arange}")
+
+# Using np.zeros(shape) and np.ones(shape)
+array_zeros = np.zeros((2, 3))  # 2 rows, 3 columns of zeros
+print(f"2x3 Array of zeros:\n{array_zeros}")
+array_ones = np.ones(4, dtype=int)  # 1D array of 4 ones (integers)
+print(f"1D Array of ones (int): {array_ones}")
+
+# Using np.linspace(start, stop, num_points)
+array_linspace = np.linspace(0, 1, 5)  # 5 evenly spaced points from 0 to 1
+print(f"Array using np.linspace(0, 1, 5): {array_linspace}")
+
+# Specifying data type (dtype)
+array_float = np.array([1, 2, 3], dtype=np.float64)
+print(f"Array with float64 dtype: {array_float}, dtype: {array_float.dtype}")
+array_int = np.array([1.1, 2.7, 3.5], dtype=np.int32) # Decimals will be truncated
+print(f"Array with int32 dtype (decimals truncated): {array_int}, dtype: {array_int.dtype}")
+print("-" * 30 + "\n")
+
+
+# --- 2. Array Attributes ---
+print("--- 2. Array Attributes ---")
+attr_array = np.array([[1, 2, 3], [4, 5, 6]])
+print(f"Sample array for attributes:\n{attr_array}")
+print(f"Number of dimensions (ndim): {attr_array.ndim}") # Should be 2
+print(f"Shape of the array (rows, columns): {attr_array.shape}") # Should be (2, 3)
+print(f"Total number of elements (size): {attr_array.size}") # Should be 6
+print(f"Data type of elements (dtype): {attr_array.dtype}") # e.g., int64 or int32
+print(f"Size of each element in bytes (itemsize): {attr_array.itemsize}")
+print("-" * 30 + "\n")
+
+
+# --- 3. Basic Indexing and Slicing ---
+print("--- 3. Basic Indexing and Slicing ---")
+# 1D Array
+idx_arr_1d = np.arange(10, 20)  # [10 11 12 13 14 15 16 17 18 19]
+print(f"Original 1D array for indexing: {idx_arr_1d}")
+print(f"Element at index 0: {idx_arr_1d[0]}")       # First element
+print(f"Element at index -1: {idx_arr_1d[-1]}")      # Last element
+print(f"Slice from index 2 to 5 (exclusive): {idx_arr_1d[2:5]}") # Elements at index 2, 3, 4
+print(f"Slice from start to index 4 (exclusive): {idx_arr_1d[:4]}")
+print(f"Slice from index 5 to end: {idx_arr_1d[5:]}")
+
+# 2D Array
+idx_arr_2d = np.array([[1, 2, 3], [4, 5, 6], [7, 8, 9]])
+print(f"\nOriginal 2D array for indexing:\n{idx_arr_2d}")
+print(f"Element at row 0, col 1: {idx_arr_2d[0, 1]}")  # Returns 2
+print(f"Element at row 2, col 0 (using arr[row][col]): {idx_arr_2d[2][0]}") # Returns 7
+print(f"First row: {idx_arr_2d[0, :]}") # or idx_arr_2d[0]
+print(f"Second column: {idx_arr_2d[:, 1]}")
+print(f"Sub-array (first 2 rows, cols 1 and 2):\n{idx_arr_2d[0:2, 1:3]}")
+print("-" * 30 + "\n")
+
+
+# --- 4. Basic Arithmetic Operations (Element-wise) ---
+print("--- 4. Basic Arithmetic Operations ---")
+arr_a = np.array([1, 2, 3])
+arr_b = np.array([4, 5, 6])
+scalar_val = 10
+print(f"Array A: {arr_a}")
+print(f"Array B: {arr_b}")
+print(f"Scalar: {scalar_val}")
+
+print(f"A + B: {arr_a + arr_b}")
+print(f"A - B: {arr_a - arr_b}")
+print(f"A * B: {arr_a * arr_b}")
+print(f"B / A: {arr_b / arr_a}")
+print(f"A + scalar: {arr_a + scalar_val}")
+print(f"A ** 2 (A squared): {arr_a ** 2}")
+print("-" * 30 + "\n")
+
+
+# --- 5. Simple Universal Functions (ufuncs) ---
+print("--- 5. Simple Universal Functions (ufuncs) ---")
+ufunc_arr = np.array([1, 4, 9, 16])
+print(f"Array for ufuncs: {ufunc_arr}")
+print(f"Square root: {np.sqrt(ufunc_arr)}")
+
+exp_arr = np.array([0, 1, 2])
+print(f"\nArray for exponential: {exp_arr}")
+print(f"Exponential (e^x): {np.exp(exp_arr)}")
+print(f"Natural logarithm (ln(x)) for [1, e, e^2]: {np.log(np.exp([1,2,3]))}") # log of e, e^2, e^3
+print("-" * 30 + "\n")
+
+
+# ==============================================================================
+# == 🧠 INTERMEDIATE LEVEL ==
+# ==============================================================================
+print("\n=================== 🧠 INTERMEDIATE LEVEL ===================\n")
+
+# --- 6. Advanced Array Creation ---
+print("--- 6. Advanced Array Creation ---")
+# Identity matrix
+identity_matrix = np.eye(3) # 3x3 identity matrix
+print(f"3x3 Identity matrix:\n{identity_matrix}")
+
+# Random numbers
+# np.random.rand(rows, cols) - uniform distribution [0,1)
+rand_uniform = np.random.rand(2, 3)
+print(f"2x3 Array of random uniform values [0,1):\n{rand_uniform}")
+
+# np.random.randn(rows, cols) - standard normal distribution (mean 0, variance 1)
+rand_normal = np.random.randn(3, 2)
+print(f"3x2 Array of random normal values (mean 0, var 1):\n{rand_normal}")
+
+# np.random.randint(low, high, size)
+rand_integers = np.random.randint(10, 20, size=(2, 4)) # Random integers between 10 (inclusive) and 20 (exclusive)
+print(f"2x4 Array of random integers [10, 20):\n{rand_integers}")
+
+# Seed for reproducibility
+np.random.seed(42) # Setting a seed ensures the same random numbers are generated
+print(f"Random number with seed: {np.random.rand(1)}")
+np.random.seed(42)
+print(f"Same random number with same seed: {np.random.rand(1)}")
+print("-" * 30 + "\n")
+
+
+# --- 7. Array Manipulation ---
+print("--- 7. Array Manipulation ---")
+manip_arr = np.arange(1, 13) # 1D array with 12 elements
+print(f"Original array for manipulation: {manip_arr}")
+
+# Reshaping
+reshaped_3x4 = manip_arr.reshape(3, 4)
+print(f"Reshaped to 3x4:\n{reshaped_3x4}")
+reshaped_auto = manip_arr.reshape(2, -1) # -1 infers the dimension (becomes 2x6)
+print(f"Reshaped to 2x_auto (2x6):\n{reshaped_auto}")
+
+# Transposing
+print(f"\nOriginal 3x4 array:\n{reshaped_3x4}")
+transposed_arr = reshaped_3x4.T # or np.transpose(reshaped_3x4)
+print(f"Transposed array (4x3):\n{transposed_arr}")
+
+# Concatenating
+arr_c1 = np.array([[1, 2], [3, 4]])
+arr_c2 = np.array([[5, 6]]) # 1 row, 2 cols
+arr_c3 = np.array([[7],[8]]) # 2 rows, 1 col
+
+conc_rows = np.concatenate((arr_c1, arr_c2), axis=0) # Along rows
+print(f"\nConcatenated along rows (axis=0):\n{conc_rows}")
+conc_cols = np.concatenate((arr_c1, arr_c3), axis=1) # Along columns
+print(f"Concatenated along columns (axis=1):\n{conc_cols}")
+
+# Stacking
+# vstack (vertical stack) - like concatenate axis=0
+vstacked = np.vstack((arr_c1, arr_c2))
+print(f"\nVstacked arrays:\n{vstacked}")
+
+# hstack (horizontal stack) - like concatenate axis=1
+hstacked = np.hstack((arr_c1, arr_c3))
+print(f"Hstacked arrays:\n{hstacked}")
+print("-" * 30 + "\n")
+
+
+# --- 8. Boolean Indexing ---
+print("--- 8. Boolean Indexing ---")
+bool_arr = np.array([10, 15, 20, 25, 30, 35])
+print(f"Array for boolean indexing: {bool_arr}")
+
+condition = bool_arr > 20
+print(f"Condition (elements > 20): {condition}") # [False False False  True  True  True]
+print(f"Elements > 20: {bool_arr[condition]}") # [25 30 35]
+print(f"Elements < 15 or > 30: {bool_arr[(bool_arr < 15) | (bool_arr > 30)]}") # [10 35]
+print(f"Elements between 15 and 30 (inclusive): {bool_arr[(bool_arr >= 15) & (bool_arr <= 30)]}")
+
+# Boolean indexing on 2D arrays
+bool_arr_2d = np.array([[1, 5, 2], [8, 3, 6], [4, 9, 7]])
+print(f"\n2D Array for boolean indexing:\n{bool_arr_2d}")
+# Select rows where the first element is greater than 3
+selected_rows_bool = bool_arr_2d[bool_arr_2d[:, 0] > 3]
+print(f"Rows where first element > 3:\n{selected_rows_bool}")
+print("-" * 30 + "\n")
+
+
+# --- 9. Fancy Indexing ---
+print("--- 9. Fancy Indexing ---")
+# Using arrays of indices to access elements
+fancy_arr = np.arange(0, 50, 5) # [ 0  5 10 15 20 25 30 35 40 45]
+print(f"Array for fancy indexing: {fancy_arr}")
+indices_to_select = [1, 3, 5, 0, 8]
+print(f"Selected elements using indices {indices_to_select}: {fancy_arr[indices_to_select]}") # [ 5 15 25  0 40]
+
+# Fancy indexing in 2D arrays
+fancy_arr_2d = np.arange(1,10).reshape(3,3)
+print(f"\n2D array for fancy indexing:\n{fancy_arr_2d}")
+row_indices = np.array([0, 2, 1])
+col_indices = np.array([1, 0, 2])
+print(f"Selecting elements at (0,1), (2,0), (1,2): {fancy_arr_2d[row_indices, col_indices]}") # [2 7 6]
+print(f"Selecting rows 0 and 2:\n{fancy_arr_2d[[0, 2]]}")
+print("-" * 30 + "\n")
+
+
+# --- 10. Broadcasting ---
+print("--- 10. Broadcasting ---")
+# How NumPy treats arrays with different shapes during arithmetic operations.
+# Example 1: Array and Scalar (already seen in basic)
+arr_br1 = np.array([1, 2, 3])
+scalar_br = 10
+print(f"Array: {arr_br1}, Scalar: {scalar_br}, Array + Scalar: {arr_br1 + scalar_br}")
+
+# Example 2: 2D array and 1D array
+arr_br_2d = np.array([[10, 20, 30], [40, 50, 60]])
+arr_br_1d = np.array([1, 2, 3]) # Shape (3,)
+print(f"\n2D Array (2x3):\n{arr_br_2d}")
+print(f"1D Array (3,): {arr_br_1d}")
+# The 1D array is "broadcast" across each row of the 2D array.
+print(f"2D Array + 1D Array (row-wise broadcast):\n{arr_br_2d + arr_br_1d}")
+
+# Example 3: Column vector and 2D array
+col_vector = np.array([[100], [200]]) # Shape (2, 1)
+print(f"\n2D Array (2x3):\n{arr_br_2d}")
+print(f"Column vector (2x1):\n{col_vector}")
+# The column vector is broadcast across each column of the 2D array.
+print(f"2D Array + Column vector (column-wise broadcast):\n{arr_br_2d + col_vector}")
+print("-" * 30 + "\n")
+
+
+# --- 11. More ufuncs and Aggregation ---
+print("--- 11. More ufuncs and Aggregation ---")
+agg_arr = np.array([[1, 2, 30], [40, 5, 6], [7, 80, 9]])
+print(f"Array for aggregation:\n{agg_arr}")
+
+print(f"Sum of all elements: {np.sum(agg_arr)} or {agg_arr.sum()}")
+print(f"Sum along columns (axis=0): {np.sum(agg_arr, axis=0)}") # [48 87 45]
+print(f"Sum along rows (axis=1): {np.sum(agg_arr, axis=1)}")    # [33 51 96]
+
+print(f"Minimum of all elements: {agg_arr.min()}")
+print(f"Maximum along columns (axis=0): {np.max(agg_arr, axis=0)}") # [40 80 30]
+print(f"Index of maximum element along rows (axis=1): {np.argmax(agg_arr, axis=1)}") # [2 0 1]
+
+print(f"Mean of all elements: {agg_arr.mean():.2f}")
+print(f"Mean along rows (axis=1): {np.mean(agg_arr, axis=1)}")
+
+print(f"Standard deviation of all elements: {agg_arr.std():.2f}")
+print(f"Variance along columns (axis=0): {np.var(agg_arr, axis=0)}")
+print("-" * 30 + "\n")
+
+
+# --- 12. Basic Linear Algebra ---
+print("--- 12. Basic Linear Algebra ---")
+matrix_m1 = np.array([[1, 2], [3, 4]])
+matrix_m2 = np.array([[5, 6], [7, 8]])
+vector_v1 = np.array([1, 2])
+print(f"Matrix M1:\n{matrix_m1}")
+print(f"Matrix M2:\n{matrix_m2}")
+print(f"Vector V1: {vector_v1}")
+
+# Dot product
+# Vector-vector dot product (scalar result)
+vector_v2 = np.array([3, 4])
+print(f"\nDot product of V1 and V2 ({vector_v1} . {vector_v2}): {np.dot(vector_v1, vector_v2)}") # 1*3 + 2*4 = 11
+
+# Matrix-vector product
+print(f"Dot product of M1 and V1 (M1.V1):\n{np.dot(matrix_m1, vector_v1)}") # or M1 @ vector_v1
+
+# Matrix-matrix product (matrix multiplication)
+print(f"Dot product of M1 and M2 (M1.M2):\n{np.dot(matrix_m1, matrix_m2)}") # or M1 @ matrix_m2
+print("-" * 30 + "\n")
+
+
+# --- 13. Copy vs. View ---
+print("--- 13. Copy vs. View ---")
+original_arr = np.arange(5)
+print(f"Original array: {original_arr}")
+
+# Assignment creates a reference (view), not a copy
+view_arr = original_arr
+print(f"View array (assigned): {view_arr}")
+view_arr[0] = 99 # Modifying the view
+print(f"View array after modification: {view_arr}")
+print(f"Original array after view modification: {original_arr}") # Original is also changed!
+
+# Reset original array
+original_arr = np.arange(5)
+print(f"\nOriginal array reset: {original_arr}")
+
+# Slicing creates a view
+slice_view_arr = original_arr[1:4]
+print(f"Slice view array: {slice_view_arr}")
+slice_view_arr[0] = 77 # Modifying the slice view
+print(f"Slice view array after modification: {slice_view_arr}")
+print(f"Original array after slice view modification: {original_arr}") # Original is also changed!
+
+# Reset original array
+original_arr = np.arange(5)
+print(f"\nOriginal array reset: {original_arr}")
+
+# Using .copy() to create a true copy
+copy_arr = original_arr.copy()
+print(f"Copy array: {copy_arr}")
+copy_arr[0] = 55 # Modifying the copy
+print(f"Copy array after modification: {copy_arr}")
+print(f"Original array after copy modification: {original_arr}") # Original remains unchanged!
+print("-" * 30 + "\n")
+
+print("\n--- End of NumPy Basic to Intermediate Learning Script ---")

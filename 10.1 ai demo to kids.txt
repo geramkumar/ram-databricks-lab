@@ -1,0 +1,303 @@
+can you provide scripts and sample data to learn ai and ml in databricks. in basic to intermediate level
+
+
+# 1. Handwritten Digit Recognition (MNIST) — Basic Image Classification
+
+# Simple MNIST classifier with Keras in Databricks
+
+import tensorflow as tf
+from tensorflow.keras.datasets import mnist
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Flatten
+from tensorflow.keras.utils import to_categorical
+
+# Load MNIST data
+(x_train, y_train), (x_test, y_test) = mnist.load_data()
+
+# Normalize and prepare data
+x_train = x_train / 255.0
+x_test = x_test / 255.0
+y_train = to_categorical(y_train)
+y_test = to_categorical(y_test)
+
+# Build simple model
+model = Sequential([
+    Flatten(input_shape=(28,28)),
+    Dense(128, activation='relu'),
+    Dense(10, activation='softmax')
+])
+
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+# Train model (only 3 epochs to keep it fast)
+model.fit(x_train, y_train, epochs=3, batch_size=64)
+
+# Evaluate model
+loss, accuracy = model.evaluate(x_test, y_test)
+print(f"Test accuracy: {accuracy:.2%}")
+
+# Predict sample digit and print prediction
+import numpy as np
+sample = x_test[0].reshape(1, 28, 28)
+prediction = np.argmax(model.predict(sample))
+print(f"Model prediction for first test image: {prediction}")
+
+
+# Text Sentiment Classifier — Classify Sentences as Positive or Negative
+
+# Simple sentiment classifier using TensorFlow Hub and Keras
+
+import tensorflow as tf
+import tensorflow_hub as hub
+from tensorflow.keras import layers
+
+# Sample training data
+sentences = [
+    "I love ice cream",
+    "This movie is amazing",
+    "I feel very happy today",
+    "I hate rain",
+    "This is terrible",
+    "I am so sad"
+]
+
+labels = [1, 1, 1, 0, 0, 0]  # 1=positive, 0=negative
+
+# Create training dataset
+train_ds = tf.data.Dataset.from_tensor_slices((sentences, labels)).batch(2)
+
+# Use pre-trained embedding from TensorFlow Hub
+embedding = "https://tfhub.dev/google/nnlm-en-dim50/2"
+hub_layer = hub.KerasLayer(embedding, input_shape=[], dtype=tf.string, trainable=False)
+
+model = tf.keras.Sequential([
+    hub_layer,
+    layers.Dense(16, activation='relu'),
+    layers.Dense(1, activation='sigmoid')
+])
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train model
+model.fit(train_ds, epochs=10)
+
+# Predict sample sentences
+test_sentences = ["I really love this!", "This is awful"]
+predictions = model.predict(test_sentences)
+for sent, pred in zip(test_sentences, predictions):
+    sentiment = "Positive" if pred > 0.5 else "Negative"
+    print(f"Sentence: '{sent}' --> Sentiment: {sentiment}")
+
+
+# 3. Magic Number Guessing — Train a Simple Model to Guess Number Trends
+
+# Simple regression with synthetic number data
+
+import numpy as np
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense
+
+# Generate numbers and their squares (number trend)
+X = np.array(range(1, 21))
+y = X ** 2
+
+# Reshape for Keras
+X = X.reshape(-1,1)
+y = y.reshape(-1,1)
+
+# Build simple regression model
+model = Sequential([
+    Dense(10, activation='relu', input_shape=(1,)),
+    Dense(1)
+])
+
+model.compile(optimizer='adam', loss='mse')
+
+# Train model
+model.fit(X, y, epochs=100, verbose=0)
+
+# Predict squares of new numbers
+test_numbers = np.array([22, 25, 30]).reshape(-1,1)
+predicted = model.predict(test_numbers)
+
+for num, pred in zip(test_numbers.flatten(), predicted.flatten()):
+    print(f"Model predicts square of {num} as approximately {pred:.1f}")
+
+
+
+# 4. Cat vs Dog Image Classifier (Using Transfer Learning)
+
+# Simple transfer learning using TensorFlow and Keras
+
+import tensorflow as tf
+from tensorflow.keras.applications import MobileNetV2
+from tensorflow.keras.layers import Dense, GlobalAveragePooling2D
+from tensorflow.keras.models import Model
+from tensorflow.keras.preprocessing.image import ImageDataGenerator
+import os
+
+# Download sample cats and dogs data from TensorFlow Datasets or use your own small image set
+# Here we simulate with small local folders: "cats" and "dogs" with few images each (replace with your own path)
+
+# Set image size and batch size
+IMG_SIZE = (160, 160)
+BATCH_SIZE = 8
+
+# Create ImageDataGenerator for data augmentation
+train_datagen = ImageDataGenerator(rescale=1./255, validation_split=0.2)
+
+train_generator = train_datagen.flow_from_directory(
+    'path_to_cats_dogs_dataset',  # Replace with actual path
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    subset='training')
+
+validation_generator = train_datagen.flow_from_directory(
+    'path_to_cats_dogs_dataset',
+    target_size=IMG_SIZE,
+    batch_size=BATCH_SIZE,
+    class_mode='binary',
+    subset='validation')
+
+# Load MobileNetV2 base model without top layer
+base_model = MobileNetV2(input_shape=IMG_SIZE + (3,), include_top=False, weights='imagenet')
+
+# Freeze base model layers
+base_model.trainable = False
+
+# Add classification head
+x = base_model.output
+x = GlobalAveragePooling2D()(x)
+output = Dense(1, activation='sigmoid')(x)
+
+model = Model(inputs=base_model.input, outputs=output)
+
+model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+
+# Train model
+model.fit(train_generator, validation_data=validation_generator, epochs=3)
+
+# NOTE: This is a demo script, adjust paths and dataset for actual runs
+
+
+
+
+5. Text Generation with GPT-2 (Small Model, Simple Prompt)
+
+# Using Huggingface Transformers to generate text
+
+!pip install transformers
+
+from transformers import pipeline
+
+generator = pipeline('text-generation', model='distilgpt2')
+
+prompt = "Once upon a time in a magical forest,"
+result = generator(prompt, max_length=50, num_return_sequences=1)
+
+print(result[0]['generated_text'])
+
+
+# 6. Simple Clustering with K-Means in PySpark
+
+from pyspark.ml.clustering import KMeans
+from pyspark.ml.feature import VectorAssembler
+
+data = [
+    (0, 0.1, 0.2),
+    (1, 0.15, 0.22),
+    (2, 9.0, 9.1),
+    (3, 8.9, 9.2),
+    (4, 0.12, 0.25),
+    (5, 8.8, 9.0),
+    (6, 15.0, 15.2),
+    (7, 15.1, 15.3),
+    (8, 15.3, 15.1),
+    (9, 0.18, 0.20)
+]
+
+df = spark.createDataFrame(data, ["id", "feature1", "feature2"])
+
+assembler = VectorAssembler(inputCols=["feature1", "feature2"], outputCol="features")
+dataset = assembler.transform(df)
+
+kmeans = KMeans(k=3, seed=1)
+model = kmeans.fit(dataset)
+
+predictions = model.transform(dataset)
+predictions.select("id", "features", "prediction").show()
+
+
+# 7. Simple AI Chatbot Using Python
+
+# Basic chatbot with simple rule-based replies
+
+def chatbot_response(text):
+    text = text.lower()
+    if "hello" in text or "hi" in text:
+        return "Hello! How can I help you today?"
+    elif "your name" in text:
+        return "I am a friendly chatbot created to talk with you!"
+    elif "bye" in text:
+        return "Goodbye! Have a great day!"
+    else:
+        return "Sorry, I don't understand that yet."
+
+# Example conversation
+print(chatbot_response("Hi there"))
+print(chatbot_response("What is your name?"))
+print(chatbot_response("Tell me a joke"))
+print(chatbot_response("Bye"))
+
+
+#8. Image Style Transfer Demo (Cartoonify or Artistic Style)
+
+# Simple style transfer using TensorFlow Hub
+
+import tensorflow_hub as hub
+import tensorflow as tf
+import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+
+# Load images (replace with your own images)
+content_image_path = "path_to_content_image.jpg"  # Your photo
+style_image_path = "path_to_style_image.jpg"      # Artwork style image
+
+def load_image(path, max_dim=512):
+    img = Image.open(path)
+    img = img.convert('RGB')
+    img = img.resize((max_dim, max_dim))
+    img = np.array(img)/255.0
+    return img[np.newaxis, ...]
+
+content_image = load_image(content_image_path)
+style_image = load_image(style_image_path)
+
+# Load TF Hub style transfer model
+hub_model = hub.load('https://tfhub.dev/google/magenta/arbitrary-image-stylization-v1-256/2')
+
+stylized_image = hub_model(tf.constant(content_image), tf.constant(style_image))[0]
+
+plt.subplot(1, 3, 1)
+plt.title("Content Image")
+plt.imshow(content_image[0])
+plt.axis('off')
+
+plt.subplot(1, 3, 2)
+plt.title("Style Image")
+plt.imshow(style_image[0])
+plt.axis('off')
+
+plt.subplot(1, 3, 3)
+plt.title("Stylized Image")
+plt.imshow(stylized_image[0])
+plt.axis('off')
+
+plt.show()
+
+
+
+
+

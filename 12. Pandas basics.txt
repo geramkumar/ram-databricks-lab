@@ -1,0 +1,110 @@
+
+# pandas_basics_to_intermediate.py
+# Author: OpenAI ChatGPT
+# Purpose: Practice basic to intermediate pandas operations with sample dataset
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 1. Create Sample DataFrame
+data = {
+    'id': [1, 2, 3, 4, 5],
+    'name': ['Alice', 'Bob', 'Charlie', 'David', 'Eve'],
+    'department': ['HR', 'IT', 'Finance', 'IT', 'HR'],
+    'salary': [5000, 6000, 7000, 6500, 5800],
+    'hire_date': pd.to_datetime(['2021-01-15', '2020-06-01', '2022-03-20', '2020-06-01', '2021-09-23'])
+}
+df = pd.DataFrame(data)
+
+# 2. Inspecting Data
+print(df.head())
+print(df.tail())
+print(df.info())
+print(df.describe())
+
+# 3. Filtering Rows
+print(df[df['salary'] > 6000])
+print(df[(df['department'] == 'IT') & (df['salary'] > 6000)])
+print(df.query("department == 'HR' and salary < 6000"))
+
+# 4. Column Operations
+df['tax'] = df['salary'] * 0.1
+df.rename(columns={'name': 'employee_name'}, inplace=True)
+df.drop(columns=['tax'], inplace=True)
+
+# 5. GroupBy and Aggregation
+print(df.groupby('department')['salary'].mean())
+print(df.groupby('department').agg(avg_salary=('salary', 'mean'), max_salary=('salary', 'max'), count=('id', 'count')))
+
+# 6. Sorting and Reset Index
+df.sort_values(by='salary', ascending=False, inplace=True)
+df.reset_index(drop=True, inplace=True)
+
+# 7. Handling Missing Values
+df.loc[2, 'salary'] = None
+print(df.isnull().sum())
+df['salary'].fillna(df['salary'].mean(), inplace=True)
+df.dropna(inplace=True)
+
+# 8. Date Operations
+df['year'] = df['hire_date'].dt.year
+df['month'] = df['hire_date'].dt.month
+df['days_since_hire'] = (pd.to_datetime('today') - df['hire_date']).dt.days
+
+# 9. String Operations
+df['employee_name_upper'] = df['employee_name'].str.upper()
+df['initials'] = df['employee_name'].str[0]
+df['name_length'] = df['employee_name'].str.len()
+
+# 10. Merge DataFrames
+dept_data = pd.DataFrame({
+    'department': ['HR', 'IT', 'Finance'],
+    'location': ['NY', 'SF', 'LA']
+})
+merged_df = pd.merge(df, dept_data, on='department', how='left')
+print(merged_df)
+
+# 11. Pivot Table
+pivot = df.pivot_table(values='salary', index='department', aggfunc=['mean', 'max'])
+print(pivot)
+
+# 12. Apply with Lambda
+df['bonus'] = df['salary'].apply(lambda x: x * 0.10 if x > 6000 else x * 0.05)
+
+# 13. Conditional Column
+df['seniority'] = np.where(df['salary'] > 6000, 'Senior', 'Junior')
+
+# 14. Dropping Duplicates
+print(df.drop_duplicates(subset=['department'], keep='first'))
+
+# 15. Save to File
+df.to_csv("employees.csv", index=False)
+df.to_excel("employees.xlsx", index=False)
+
+# 16. Read from File
+df_csv = pd.read_csv("employees.csv")
+df_excel = pd.read_excel("employees.xlsx")
+
+# 17. Index Handling
+df.set_index('id', inplace=True)
+df.reset_index(inplace=True)
+
+# 18. Basic Plotting
+df.groupby('department')['salary'].mean().plot(kind='bar')
+plt.title("Average Salary by Department")
+plt.ylabel("Salary")
+plt.tight_layout()
+plt.savefig("salary_by_department.png")  # Save plot to file
+
+# 19. Combine DataFrames
+df2 = df.copy()
+df_combined = pd.concat([df, df2], ignore_index=True)
+
+# 20. Filtering with isin
+print(df[df['department'].isin(['HR', 'IT'])])
+
+# 21. Export Filtered Data
+df[df['salary'] > 6000].to_csv("high_salary_employees.csv", index=False)
+
+print("All pandas operations executed successfully.")
