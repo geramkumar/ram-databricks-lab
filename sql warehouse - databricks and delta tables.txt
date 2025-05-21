@@ -1,0 +1,302 @@
+CREATE DATABASE IF NOT EXISTS learn_delta_db;
+USE learn_delta_db;
+
+-- Create a customer data table
+CREATE TABLE IF NOT EXISTS customers (
+    customer_id STRING NOT NULL COMMENT 'Unique identifier for the customer',
+    first_name STRING,
+    last_name STRING,
+    email STRING,
+    registration_date DATE,
+    city STRING,
+    loyalty_points INT
+)
+USING DELTA
+COMMENT 'Table to store customer information'
+PARTITIONED BY (city) -- Optional: partitioning for better query performance on city
+TBLPROPERTIES ('delta.autoOptimize.optimizeWrite' = 'true', 'delta.autoOptimize.autoCompact' = 'true'); -- Optional: enabling auto-optimization features
+
+-- Describe the table to see its structure
+DESCRIBE EXTENDED customers;
+DESCRIBE DETAIL customers; -- Shows format: DELTA, location, etc.
+
+
+
+
+-- First, let's create some temporary data to select from (or imagine this is an existing non-Delta table)
+CREATE OR REPLACE TEMPORARY VIEW temp_initial_customers AS
+SELECT
+    'cust1001' AS customer_id, 'Alice' AS first_name, 'Wonder' AS last_name, 'alice.w@example.com' AS email,
+    DATE'2023-01-15' AS registration_date, 'New York' AS city, 150 AS loyalty_points
+UNION ALL
+SELECT
+    'cust1002' AS customer_id, 'Bob' AS first_name, 'The Builder' AS last_name, 'bob.b@example.com' AS email,
+    DATE'2023-02-20' AS registration_date, 'London' AS city, 200 AS loyalty_points
+UNION ALL
+SELECT
+    'cust1003' AS customer_id, 'Charlie' AS first_name, 'Chaplin' AS last_name, 'charlie.c@example.com' AS email,
+    DATE'2023-03-10' AS registration_date, 'Paris' AS city, 50 AS loyalty_points;
+
+-- Now, create a Delta table from the temporary view
+CREATE TABLE IF NOT EXISTS customers_ctas
+USING DELTA
+AS SELECT * FROM temp_initial_customers;
+
+-- Check the new table
+SELECT * FROM customers_ctas;
+DESCRIBE DETAIL customers_ctas;
+
+
+
+
+
+INSERT INTO customers
+VALUES
+    ('cust001', 'John', 'Doe', 'john.doe@example.com', '2022-05-01', 'New York', 100),
+    ('cust002', 'Jane', 'Smith', 'jane.smith@example.com', '2022-06-15', 'London', 250),
+    ('cust003', 'Peter', 'Jones', 'peter.jones@example.com', '2022-07-20', 'New York', 50),
+    ('cust004', 'Emily', 'Brown', 'emily.b@example.com', '2023-01-10', 'Paris', 300),
+    ('cust005', 'Michael', 'Davis', 'michael.d@example.com', '2023-02-28', 'London', 120);
+
+-- Select all data
+SELECT * FROM customers ORDER BY registration_date;
+
+
+UPDATE customers
+SET city = 'San Francisco', loyalty_points = loyalty_points + 75
+WHERE customer_id = 'cust003';
+
+-- Verify the update
+SELECT * FROM customers WHERE customer_id = 'cust003';
+
+DELETE FROM customers
+WHERE customer_id = 'cust005';
+
+-- Verify the deletion
+SELECT * FROM customers WHERE customer_id = 'cust005'; -- Should return no rows
+SELECT * FROM customers ORDER BY customer_id;
+
+-- Sample source data (e.g., daily updates) - could be a temporary view or another table
+CREATE OR REPLACE TEMPORARY VIEW customer_updates AS
+SELECT
+    'cust001' AS customer_id, 'Johnathan' AS first_name, 'Doe' AS last_name, 'john.doe.updated@example.com' AS email,
+    DATE'2022-05-01' AS registration_date, 'New York' AS city, 110 AS loyalty_points, 'Active' AS status
+UNION ALL
+SELECT -- Existing customer, details changed
+    'cust002' AS customer_id, 'Jane', 'Smith-Jones' AS last_name, 'jane.sj@example.com' AS email,
+    DATE'2022-06-15' AS registration_date, 'London' AS city, 260 AS loyalty_points, 'Active' AS status
+UNION ALL
+SELECT -- New customer
+    'cust006' AS customer_id, 'Sarah', 'Miller', 'sarah.m@example.com' AS email,
+    CURRENT_DATE() AS registration_date, 'Berlin' AS city, 75 AS loyalty_points, 'Active' AS status
+UNION ALL
+SELECT -- Customer to potentially mark as inactive (will be handled by WHEN NOT MATCHED BY SOURCE)
+    'cust004' AS customer_id, 'Emily', 'Brown', 'emily.b@example.com' AS email,
+    DATE'2023-01-10' AS registration_date, 'Paris' AS city, 300 AS loyalty_points, 'Inactive' AS status; -- Note: status not in target yet
+
+
+
+
+
+
+-- Before MERGE, let's see current state
+SELECT * FROM customers ORDER BY customer_id;
+
+-- Perform the MERGE operation
+-- Note: Schema evolution for the 'status' column needs to be handled if it doesn't exist.
+-- For this example, let's assume 'status' column isn't in the target 'customers' table yet.
+-- We'll add it in the schema evolution section first, then re-run MERGE.
+-- For now, let's do a MERGE without the 'status' column in the source view for simplicity or on target.
+
+MERGE INTO customers AS target
+USING (
+    SELECT 'cust001' AS customer_id, 'Johnathan' AS first_name, 'Doe' AS last_name, 'john.doe.updated@example.com' AS email, 160 AS loyalty_points, 'New York' AS city
+    UNION ALL
+    SELECT 'cust002' AS customer_id, 'Jane' AS first_name, 'Smith-Jones' AS last_name, 'jane.sj@example.com' AS email, 260 AS loyalty_points, 'London' AS city
+    UNION ALL
+    SELECT 'cust006' AS customer_id, 'Sarah' AS first_name, 'Miller' AS email, 'sarah.m@example.com' AS email, 75 AS loyalty_points, 'Berlin' AS city
+) AS source
+ON target.customer_id = source.customer_id
+WHEN MATCHED THEN -- If customer_id matches, update details
+    UPDATE SET
+        target.first_name = source.first_name,
+        target.last_name = source.last_name,
+        target.email = source.email,
+        target.loyalty_points = source.loyalty_points
+WHEN NOT MATCHED THEN -- If customer_id from source is not in target, insert new customer
+    INSERT (customer_id, first_name, last_name, email, registration_date, city, loyalty_points)
+    VALUES (source.customer_id, source.first_name, source.last_name, source.email, CURRENT_DATE(), source.city, source.loyalty_points);
+    -- Note: We need to ensure all target columns are provided, or specify which are being inserted.
+    -- For simplicity, assuming registration_date for new users is CURRENT_DATE().
+
+-- To make the above MERGE work with the simplified source:
+MERGE INTO customers target
+USING (
+    SELECT 'cust001' AS customer_id, 'Johnathan' AS first_name, 'Doe' AS last_name, 'john.doe.updated@example.com' AS email, DATE'2022-05-01' AS registration_date, 'New York' AS city, 160 AS loyalty_points
+    UNION ALL
+    SELECT 'cust002' AS customer_id, 'Jane' AS first_name, 'Smith-Jones' AS last_name, 'jane.sj@example.com' AS email, DATE'2022-06-15' AS registration_date, 'London' AS city, 260 AS loyalty_points
+    UNION ALL
+    SELECT 'cust006' AS customer_id, 'Sarah' AS first_name, 'Miller' AS last_name, 'sarah.m@example.com' AS email, CURRENT_DATE() AS registration_date, 'Berlin' AS city, 75 AS loyalty_points
+) AS source
+ON target.customer_id = source.customer_id
+WHEN MATCHED THEN
+  UPDATE SET
+    target.first_name = source.first_name,
+    target.last_name = source.last_name,
+    target.email = source.email,
+    target.loyalty_points = source.loyalty_points
+WHEN NOT MATCHED THEN
+  INSERT (customer_id, first_name, last_name, email, registration_date, city, loyalty_points)
+  VALUES (source.customer_id, source.first_name, source.last_name, source.email, source.registration_date, source.city, source.loyalty_points);
+
+
+-- Verify the merge
+SELECT * FROM customers ORDER BY customer_id;
+
+
+---
+--- Time Travel
+--- 
+
+
+-- Let's add a 'status' column and a 'last_activity_date' to our customers table
+ALTER TABLE customers ADD COLUMNS (
+    status STRING DEFAULT 'Active',
+    last_activity_date TIMESTAMP
+);
+
+-- Verify the schema change
+DESCRIBE customers;
+
+-- Newly added columns will have NULL values for existing rows unless a DEFAULT is specified (as for 'status')
+SELECT customer_id, status, last_activity_date FROM customers LIMIT 5;
+
+-- Now you can update these new columns
+UPDATE customers
+SET last_activity_date = current_timestamp(), status = 'Active'
+WHERE customer_id = 'cust001';
+
+UPDATE customers
+SET last_activity_date = date_sub(current_timestamp(), 5), status = 'Inactive'
+WHERE customer_id = 'cust004';
+
+
+SELECT customer_id, status, last_activity_date FROM customers ORDER BY customer_id;
+
+-- Example of MERGE with schema evolution (source has a new column)
+-- If the source in MERGE has columns not in the target, and you have spark.databricks.delta.schema.autoMerge = true (default is false for SQL MERGE)
+-- Or you can explicitly alter the table first like we did.
+-- If autoMerge is true, the target schema would be updated.
+-- In SQL Warehouse, you typically manage schema explicitly with ALTER TABLE.
+
+
+-- 1. Check current state (Let's assume this is version N after some operations)
+SELECT * FROM customers WHERE customer_id = 'cust002';
+
+-- 2. Perform an update on a customer to create a new version
+UPDATE customers SET loyalty_points = 300 WHERE customer_id = 'cust002';
+SELECT * FROM customers WHERE customer_id = 'cust002'; -- Shows new loyalty points
+
+-- 3. View table history to see versions
+DESCRIBE HISTORY customers;
+-- Note down the latest version number (e.g., V_current) and the version before the update (e.g., V_previous = V_current - 1)
+
+-- 4. Query a previous version using VERSION AS OF
+-- Replace 'X' with the actual version number before the update of cust002's loyalty points
+-- For example, if the latest version is 5, the previous might be 4.
+-- SELECT * FROM customers VERSION AS OF <version_number_before_last_update> WHERE customer_id = 'cust002';
+-- e.g. if current version is 3 after the update:
+-- SELECT * FROM customers VERSION AS OF 2 WHERE customer_id = 'cust002';
+
+-- 5. Query a previous version using TIMESTAMP AS OF
+-- Get a timestamp before the last update. You can get this from DESCRIBE HISTORY.
+-- DESCRIBE HISTORY customers;
+-- Find the timestamp of the version just before the last update. Let's say it's 'YYYY-MM-DDTHH:MM:SS.MMMZ'
+-- SELECT * FROM customers TIMESTAMP AS OF '<timestamp_string_before_last_update>' WHERE customer_id = 'cust002';
+-- Example:
+-- SELECT * FROM customers TIMESTAMP AS OF '2025-05-21T02:00:00.000Z' WHERE customer_id = 'cust002'; -- Adjust timestamp accordingly
+
+-- To make this runnable, let's get a specific timestamp from the history
+-- First, make a change:
+INSERT INTO customers (customer_id, first_name, city, registration_date) VALUES ('cust999', 'Temp', 'TempCity', current_date());
+DELETE FROM customers WHERE customer_id = 'cust999';
+
+-- Now get history. Let's assume version 0 was initial creation, version 1 was first insert, etc.
+-- The output of DESCRIBE HISTORY will look something like:
+-- | version | timestamp               | userId | userName | operation | operationParameters | ... |
+-- | ------- | ----------------------- | ------ | -------- | --------- | ------------------- | --- |
+-- | 3       | 2025-05-21T07:30:00.000Z| ...    | ...      | DELETE    | {"predicate":"...   | ... |
+-- | 2       | 2025-05-21T07:28:00.000Z| ...    | ...      | INSERT    | {"numOutputRows":"1"}| ... |
+-- | 1       | 2025-05-21T07:25:00.000Z| ...    | ...      | UPDATE    | {"predicate":"...   | ... |
+-- | 0       | 2025-05-21T07:20:00.000Z| ...    | ...      | CREATE... | ...                 | ... |
+
+-- Let's say the update to cust002 happened at version 1, timestamp '2025-05-21T07:25:00.000Z'
+-- And before that (version 0) cust002 had original points.
+-- Query the state AT version 0:
+-- SELECT * FROM customers VERSION AS OF 0 WHERE customer_id = 'cust002';
+-- Query the state at the timestamp of version 0:
+-- SELECT * FROM customers TIMESTAMP AS OF '2025-05-21T07:20:00.000Z' WHERE customer_id = 'cust002';
+
+-- Note: You need to replace version numbers and timestamps with actual values from your `DESCRIBE HISTORY customers;` output.
+
+
+--
+-- Optimize and Z-ORDER
+--
+
+-- Optimize the customers table. This can be beneficial after many small writes.
+OPTIMIZE customers;
+
+-- Optimize and Z-ORDER by a frequently filtered column (or multiple columns)
+-- Z-ORDERING is particularly effective on columns used in query predicates and if those columns have high cardinality.
+-- Choose columns you often filter on. 'registration_date' or 'email' could be candidates.
+-- You cannot Z-ORDER by partition columns.
+OPTIMIZE customers ZORDER BY (registration_date, email);
+
+-- View table details to see number of files, size, etc.
+DESCRIBE DETAIL customers;
+-- After OPTIMIZE, you should see fewer, larger files.
+
+
+
+
+--
+-- VACCUM
+--
+
+-- VACUUM the table to remove old files.
+-- By default, VACUUM will not delete files less than 7 days old to prevent accidental data loss.
+-- For testing, you can disable this check, but **NEVER DO THIS IN PRODUCTION** without understanding the implications.
+
+-- SHOWS what would be deleted (dry run is not explicitly available for VACUUM, but not setting spark.databricks.delta.retentionDurationCheck.enabled to false prevents immediate deletion for files within retention)
+-- VACUUM customers; -- This will respect the 7-day retention period.
+
+-- To run it for files older than, say, 1 hour for demonstration (NOT FOR PRODUCTION):
+-- SET spark.databricks.delta.retentionDurationCheck.enabled = false;
+-- VACUUM customers RETAIN 0 HOURS; -- This will remove all unreferenced files immediately.
+-- SET spark.databricks.delta.retentionDurationCheck.enabled = true; -- Re-enable the check
+
+-- Check history and detail again
+DESCRIBE HISTORY customers;
+DESCRIBE DETAIL customers;
+
+
+
+
+--
+-- Check constraints
+-- 
+
+-- Add a CHECK constraint to ensure loyalty_points are non-negative
+ALTER TABLE customers ADD CONSTRAINT positive_loyalty_points CHECK (loyalty_points >= 0);
+
+-- Attempt to insert/update data that violates the constraint (this will fail)
+-- INSERT INTO customers VALUES ('cust007', 'Negative', 'Points', 'neg@example.com', '2023-04-01', 'Test City', -10, 'Active', current_timestamp());
+-- This INSERT will fail because loyalty_points is -10.
+
+-- Attempt to update data to violate constraint (this will fail)
+-- UPDATE customers SET loyalty_points = -5 WHERE customer_id = 'cust001';
+-- This UPDATE will fail.
+
+-- Check constraints information
+DESCRIBE EXTENDED customers; -- Look for 'Constraints' in the output

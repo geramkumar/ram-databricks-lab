@@ -1,0 +1,79 @@
+-- Delta Live Table Script for Products and Sales with Data Quality and Materialized Views
+-- Designed for Databricks Delta Live Tables (DLT) pipeline in SQL mode
+
+-- 1. Bronze Layer: Products
+CREATE OR REFRESH LIVE TABLE products_raw
+COMMENT "Raw product data"
+AS SELECT * FROM VALUES
+  (101, 'Laptop', 'Electronics', 1200.00),
+  (102, 'Smartphone', 'Electronics', 800.00),
+  (103, 'Desk', 'Furniture', 300.00),
+  (104, 'Chair', 'Furniture', 150.00),
+  (105, 'Notebook', 'Stationery', 5.00),
+  (106, 'Pen', 'Stationery', NULL),
+  (107, NULL, 'Electronics', 950.00),
+  (108, 'Monitor', 'Electronics', 400.00),
+  (109, 'Mouse', 'Electronics', 50.00),
+  (110, 'Keyboard', 'Electronics', 100.00)
+AS products(product_id, product_name, category, price);
+
+-- 2. Bronze Layer: Sales
+CREATE OR REFRESH LIVE TABLE sales_raw
+COMMENT "Raw sales data"
+AS SELECT * FROM VALUES
+  (1, 101, 2, '2023-01-01'),
+  (2, 102, 1, '2023-01-02'),
+  (3, 103, 3, '2023-01-03'),
+  (4, 105, 10, '2023-01-04'),
+  (5, 106, 5, '2023-01-05'),
+  (6, 107, 1, '2023-01-06'),
+  (7, 108, NULL, '2023-01-07'),
+  (8, 109, 4, NULL),
+  (9, 110, 2, '2023-01-08'),
+  (10, NULL, 3, '2023-01-09')
+AS sales(sale_id, product_id, quantity, sale_date);
+
+-- 3. Silver Layer: Cleaned Products
+CREATE OR REFRESH LIVE TABLE products_cleaned
+COMMENT "Validated product data"
+TBLPROPERTIES ("quality" = "silver")
+AS SELECT * FROM LIVE.products_raw;
+
+EXPECT (product_id IS NOT NULL) ON VIOLATION FAIL UPDATE;
+EXPECT (product_name IS NOT NULL) ON VIOLATION DROP ROW;
+EXPECT (category IN ('Electronics', 'Furniture', 'Stationery')) ON VIOLATION DROP ROW;
+EXPECT (price IS NOT NULL AND price > 0) ON VIOLATION DROP ROW;
+
+-- 4. Silver Layer: Cleaned Sales
+CREATE OR REFRESH LIVE TABLE sales_cleaned
+COMMENT "Validated sales data"
+TBLPROPERTIES ("quality" = "silver")
+AS SELECT * FROM LIVE.sales_raw;
+
+EXPECT (sale_id IS NOT NULL) ON VIOLATION FAIL UPDATE;
+EXPECT (product_id IS NOT NULL) ON VIOLATION DROP ROW;
+EXPECT (quantity IS NOT NULL AND quantity > 0) ON VIOLATION DROP ROW;
+EXPECT (sale_date IS NOT NULL) ON VIOLATION DROP ROW;
+
+-- 5. Gold Layer: Materialized View of Sales Summary
+CREATE OR REFRESH LIVE TABLE product_sales_summary
+COMMENT "Sales summary by product"
+TBLPROPERTIES ("quality" = "gold")
+AS
+SELECT
+  p.product_id,
+  p.product_name,
+  p.category,
+  SUM(s.quantity) AS total_quantity_sold,
+  SUM(s.quantity * p.price) AS total_revenue
+FROM LIVE.sales_cleaned s
+JOIN LIVE.products_cleaned p ON s.product_id = p.product_id
+GROUP BY p.product_id, p.product_name, p.category;
+
+-- 6. Gold Layer: High Revenue Products View
+CREATE OR REFRESH LIVE TABLE high_revenue_products
+COMMENT "Products with total revenue > $2000"
+TBLPROPERTIES ("quality" = "gold")
+AS
+SELECT * FROM LIVE.product_sales_summary
+WHERE total_revenue > 2000;

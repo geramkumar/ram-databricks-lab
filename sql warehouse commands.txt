@@ -1,0 +1,320 @@
+-- Creating the Employees table
+CREATE TABLE IF NOT EXISTS employees (
+    employee_id INT PRIMARY KEY,
+    first_name STRING,
+    last_name STRING,
+    email STRING,
+    hire_date DATE,
+    department STRING,
+    salary DECIMAL(10, 2),
+    manager_id INT
+);
+
+-- Inserting sample data into the Employees table
+INSERT INTO employees VALUES
+(1, 'James', 'Smith', 'james.smith@example.com', '2020-01-15', 'Sales', 60000.00, NULL),
+(2, 'Maria', 'Garcia', 'maria.garcia@example.com', '2019-07-22', 'Sales', 65000.00, 1),
+(3, 'David', 'Rodriguez', 'david.r@example.com', '2021-03-10', 'Marketing', 58000.00, NULL),
+(4, 'Patricia', 'Williams', 'patricia.w@example.com', '2020-05-01', 'Marketing', 62000.00, 3),
+(5, 'Michael', 'Brown', 'michael.b@example.com', '2018-11-30', 'Engineering', 80000.00, NULL),
+(6, 'Linda', 'Jones', 'linda.j@example.com', '2022-08-17', 'Engineering', 75000.00, 5),
+(7, 'Robert', 'Miller', 'robert.m@example.com', '2021-09-01', 'Engineering', 90000.00, 5),
+(8, 'Jennifer', 'Davis', 'jennifer.d@example.com', '2023-02-20', 'HR', 55000.00, NULL),
+(9, 'Charles', 'Wilson', 'charles.w@example.com', '2020-01-15', 'Sales', 61000.00, 1),
+(10, 'Sarah', 'Anderson', 'sarah.a@example.com', '2019-07-22', 'Marketing', 63000.00, 3);
+
+-- Creating the Products table
+CREATE TABLE IF NOT EXISTS products (
+    product_id INT PRIMARY KEY,
+    product_name STRING,
+    category STRING,
+    price DECIMAL(10, 2),
+    stock_quantity INT
+);
+
+-- Inserting sample data into the Products table
+INSERT INTO products VALUES
+(101, 'Laptop Pro 15"', 'Electronics', 1200.00, 50),
+(102, 'Wireless Mouse', 'Electronics', 25.00, 200),
+(103, 'Office Chair Deluxe', 'Furniture', 150.00, 75),
+(104, 'Coffee Maker XL', 'Appliances', 70.00, 120),
+(105, 'Notebook Set (3 pack)', 'Stationery', 15.00, 500),
+(106, 'Smartphone X', 'Electronics', 800.00, 80),
+(107, 'Desk Lamp LED', 'Furniture', 45.00, 150);
+
+-- Creating the Orders table
+CREATE TABLE IF NOT EXISTS orders (
+    order_id INT PRIMARY KEY,
+    customer_id INT,
+    order_date DATE,
+    ship_date DATE,
+    status STRING
+);
+
+-- Inserting sample data into the Orders table
+INSERT INTO orders VALUES
+(1001, 201, '2023-01-10', '2023-01-12', 'Shipped'),
+(1002, 202, '2023-01-15', '2023-01-18', 'Shipped'),
+(1003, 201, '2023-02-01', '2023-02-05', 'Delivered'),
+(1004, 203, '2023-02-20', NULL, 'Processing'),
+(1005, 204, '2023-03-05', '2023-03-07', 'Shipped'),
+(1006, 202, '2023-03-10', NULL, 'Pending'),
+(1007, 205, '2023-04-01', '2023-04-03', 'Delivered'),
+(1008, 201, '2023-04-15', '2023-04-18', 'Shipped');
+
+-- Creating the Order_Items table
+CREATE TABLE IF NOT EXISTS order_items (
+    order_item_id INT PRIMARY KEY,
+    order_id INT,
+    product_id INT,
+    quantity INT,
+    unit_price DECIMAL(10, 2),
+    FOREIGN KEY (order_id) REFERENCES orders(order_id),
+    FOREIGN KEY (product_id) REFERENCES products(product_id)
+);
+
+-- Inserting sample data into the Order_Items table
+INSERT INTO order_items VALUES
+(2001, 1001, 101, 1, 1200.00),
+(2002, 1001, 102, 2, 25.00),
+(2003, 1002, 103, 1, 150.00),
+(2004, 1003, 104, 1, 70.00),
+(2005, 1003, 105, 5, 15.00),
+(2006, 1004, 101, 1, 1200.00),
+(2007, 1004, 106, 1, 800.00),
+(2008, 1005, 102, 3, 25.00),
+(2009, 1006, 107, 2, 45.00),
+(2010, 1007, 101, 1, 1200.00),
+(2011, 1007, 105, 10, 15.00),
+(2012, 1008, 103, 2, 150.00);
+
+-- Select all columns from the employees table
+SELECT * FROM employees;
+
+-- Select specific columns
+SELECT first_name, last_name, salary FROM employees;
+
+-- Employees in the Sales department
+SELECT first_name, last_name, department
+FROM employees
+WHERE department = 'Sales';
+
+-- Products with a price greater than $100
+SELECT product_name, price
+FROM products
+WHERE price > 100.00;
+
+-- Orders placed in January 2023
+SELECT order_id, customer_id, order_date
+FROM orders
+WHERE order_date >= '2023-01-01' AND order_date <= '2023-01-31';
+
+-- Employees ordered by salary in descending order
+SELECT first_name, last_name, salary
+FROM employees
+ORDER BY salary DESC;
+
+-- Products ordered by category and then by price
+SELECT product_name, category, price
+FROM products
+ORDER BY category ASC, price DESC;
+
+-- List all unique departments
+SELECT DISTINCT department FROM employees;
+
+-- Top 5 highest paid employees
+SELECT first_name, last_name, salary
+FROM employees
+ORDER BY salary DESC
+LIMIT 5;
+
+-- Get order details with product names
+SELECT o.order_id, p.product_name, oi.quantity, oi.unit_price
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id;
+
+-- Get employee names and their manager's names (self-join)
+SELECT e.first_name || ' ' || e.last_name AS employee_name,
+       m.first_name || ' ' || m.last_name AS manager_name
+FROM employees e
+LEFT JOIN employees m ON e.manager_id = m.employee_id;
+
+-- Concatenate first and last names
+SELECT CONCAT(first_name, ' ', last_name) AS full_name FROM employees;
+-- Alternative using || operator
+SELECT first_name || ' ' || last_name AS full_name FROM employees;
+
+-- Get the length of product names
+SELECT product_name, LENGTH(product_name) AS name_length FROM products;
+
+-- Convert email to uppercase
+SELECT email, UPPER(email) AS upper_email FROM employees;
+
+-- Convert department to lowercase
+SELECT department, LOWER(department) AS lower_department FROM employees;
+
+-- Get a substring of the product name (first 5 characters)
+SELECT product_name, SUBSTRING(product_name, 1, 5) AS product_prefix FROM products;
+
+-- Replace a part of a string
+SELECT email, REPLACE(email, '@example.com', '@company.com') AS new_email FROM employees;
+
+-- Trim leading/trailing spaces (assuming some data might have them)
+-- First, let's add a product with spaces to demonstrate
+-- INSERT INTO products VALUES (108, '  Extra Padded Mousepad  ', 'Accessories', 20.00, 30);
+SELECT product_name, TRIM(product_name) AS trimmed_name
+FROM products
+WHERE product_name LIKE '% %'; -- Example to find names with spaces
+
+-- Find the position of a substring
+SELECT email, INSTR(email, '@') AS at_position FROM employees;
+
+-- Get the current date
+SELECT CURRENT_DATE() AS today;
+
+-- Extract year, month, and day from hire_date
+SELECT hire_date,
+       YEAR(hire_date) AS hire_year,
+       MONTH(hire_date) AS hire_month,
+       DAY(hire_date) AS hire_day
+FROM employees;
+
+-- Add 30 days to order_date
+SELECT order_date, DATE_ADD(order_date, 30) AS date_plus_30_days FROM orders;
+
+-- Subtract 7 days from order_date
+SELECT order_date, DATE_SUB(order_date, 7) AS date_minus_7_days FROM orders;
+
+-- Calculate the difference in days between ship_date and order_date
+SELECT order_id, order_date, ship_date, DATEDIFF(ship_date, order_date) AS shipping_duration_days
+FROM orders
+WHERE ship_date IS NOT NULL;
+
+-- Format a date
+SELECT order_date, DATE_FORMAT(order_date, 'MMMM dd, yyyy') AS formatted_order_date FROM orders;
+SELECT order_date, DATE_FORMAT(order_date, 'yyyy/MM/dd') AS formatted_date_iso FROM orders;
+
+-- Get the day of the week from hire_date
+SELECT hire_date, DATE_FORMAT(hire_date, 'EEEE') AS day_of_week FROM employees; -- 'EEEE' for full day name
+
+-- Calculate months between two dates
+SELECT order_date, ship_date, MONTHS_BETWEEN(ship_date, order_date) AS months_to_ship
+FROM orders
+WHERE ship_date IS NOT NULL;
+
+-- Count of employees in each department
+SELECT department, COUNT(*) AS num_employees
+FROM employees
+GROUP BY department;
+
+-- Total salary for each department
+SELECT department, SUM(salary) AS total_salary_by_dept
+FROM employees
+GROUP BY department;
+
+-- Average price of products in each category
+SELECT category, AVG(price) AS avg_price_by_category
+FROM products
+GROUP BY category;
+
+-- Minimum and Maximum stock quantity for each category
+SELECT category, MIN(stock_quantity) AS min_stock, MAX(stock_quantity) AS max_stock
+FROM products
+GROUP BY category;
+
+-- Departments with an average salary greater than $60,000
+SELECT department, AVG(salary) AS avg_dept_salary
+FROM employees
+GROUP BY department
+HAVING AVG(salary) > 60000;
+
+-- Number of orders per customer
+SELECT customer_id, COUNT(order_id) AS num_orders
+FROM orders
+GROUP BY customer_id
+ORDER BY num_orders DESC;
+
+-- Total quantity of each product sold
+SELECT p.product_name, SUM(oi.quantity) AS total_quantity_sold
+FROM order_items oi
+JOIN products p ON oi.product_id = p.product_id
+GROUP BY p.product_name
+ORDER BY total_quantity_sold DESC;
+
+-- Assign a unique number to each employee within their department, ordered by salary
+SELECT
+    first_name,
+    last_name,
+    department,
+    salary,
+    ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC) AS rn,
+    RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS rnk,
+    DENSE_RANK() OVER (PARTITION BY department ORDER BY salary DESC) AS dense_rnk
+FROM employees;
+
+-- Show each employee's salary and the average salary for their department
+SELECT
+    first_name,
+    last_name,
+    department,
+    salary,
+    AVG(salary) OVER (PARTITION BY department) AS avg_dept_salary
+FROM employees;
+
+-- Cumulative sum of salaries within each department, ordered by hire_date
+SELECT
+    first_name,
+    last_name,
+    department,
+    hire_date,
+    salary,
+    SUM(salary) OVER (PARTITION BY department ORDER BY hire_date ASC ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_salary
+FROM employees;
+
+-- Show each employee's salary and the salary of the previously hired employee in the same department
+SELECT
+    first_name,
+    last_name,
+    department,
+    hire_date,
+    salary,
+    LAG(salary, 1, 0.00) OVER (PARTITION BY department ORDER BY hire_date) AS previous_employee_salary
+FROM employees;
+-- LAG(column, offset, default_value)
+
+-- Show each employee's salary and the salary of the next hired employee in the same department
+SELECT
+    first_name,
+    last_name,
+    department,
+    hire_date,
+    salary,
+    LEAD(salary, 1, 0.00) OVER (PARTITION BY department ORDER BY hire_date) AS next_employee_salary
+FROM employees;
+-- LEAD(column, offset, default_value)
+
+-- Divide employees into 4 salary quartiles within each department
+SELECT
+    first_name,
+    last_name,
+    department,
+    salary,
+    NTILE(4) OVER (PARTITION BY department ORDER BY salary DESC) AS salary_quartile
+FROM employees;
+
+-- Comprehensive analysis of sales orders
+SELECT
+    o.order_id,
+    o.order_date,
+    p.product_name,
+    oi.quantity,
+    oi.unit_price,
+    SUM(oi.quantity * oi.unit_price) OVER (PARTITION BY o.order_id) AS total_order_value,
+    RANK() OVER (ORDER BY o.order_date DESC, o.order_id) AS order_recency_rank,
+    LAG(o.order_date, 1, o.order_date) OVER (PARTITION BY o.customer_id ORDER BY o.order_date) AS previous_order_date_for_customer
+FROM orders o
+JOIN order_items oi ON o.order_id = oi.order_id
+JOIN products p ON oi.product_id = p.product_id
+ORDER BY o.customer_id, o.order_date;
+

@@ -1,0 +1,51 @@
+-- Delta Live Table Script with Full Features for Learning
+-- This script assumes it's run in a DLT pipeline configured in Databricks
+
+-- 1. Declare the table as a live table
+CREATE OR REFRESH LIVE TABLE employee_raw
+COMMENT "Raw employee data for learning DLT"
+AS SELECT * FROM VALUES
+  (1, 'Alice', 'HR', 5000, '2023-01-10'),
+  (2, 'Bob', 'IT', 6000, '2023-01-12'),
+  (3, 'Charlie', 'IT', 6500, '2023-01-13'),
+  (4, 'David', 'Finance', 7000, '2023-01-11'),
+  (5, 'Eve', 'HR', NULL, '2023-01-09'),
+  (6, 'Frank', 'Finance', 8000, '2023-01-15'),
+  (7, 'Grace', 'IT', 5500, '2023-01-14'),
+  (8, 'Heidi', 'HR', 5800, '2023-01-08'),
+  (9, 'Ivan', 'Finance', 7300, NULL),
+  (10, 'Judy', NULL, 5000, '2023-01-10')
+AS employee(id, name, department, salary, hire_date);
+
+-- 2. Cleaned table with schema enforcement and constraints
+CREATE OR REFRESH LIVE TABLE employee_cleaned
+COMMENT "Cleaned and validated employee data"
+TBLPROPERTIES ("quality" = "silver")
+AS
+SELECT * FROM LIVE.employee_raw;
+
+-- 3. Expectation to enforce salary is not null and positive
+APPLY CHANGES INTO LIVE.employee_cleaned
+FROM LIVE.employee_raw
+KEY (id)
+WHEN MATCHED THEN UPDATE SET *
+WHEN NOT MATCHED THEN INSERT *
+
+-- 4. Data Quality Expectations
+-- Expectation: salary must not be null
+EXPECT (salary IS NOT NULL) ON VIOLATION DROP ROW;
+
+-- Expectation: department must be one of a fixed list
+EXPECT (department IN ('HR', 'IT', 'Finance')) ON VIOLATION DROP ROW;
+
+-- Expectation: hire_date must not be null
+EXPECT (hire_date IS NOT NULL) ON VIOLATION DROP ROW;
+
+-- 5. Gold Layer Example: Aggregation
+CREATE OR REFRESH LIVE TABLE department_summary
+COMMENT "Aggregated salary stats per department"
+TBLPROPERTIES ("quality" = "gold")
+AS
+SELECT department, COUNT(*) AS num_employees, AVG(salary) AS avg_salary
+FROM LIVE.employee_cleaned
+GROUP BY department;
